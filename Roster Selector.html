@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="https://apis.google.com/js/api.js"></script>
+  <style>
+	
+  .roster-select {
+    width: 250px;
+  }
+  
+  .roster-waiting {
+    width: 250px;
+  }
+
+  .assignment-select {
+    width: 250px;
+  }
+  
+  .assignment-waiting {
+    width: 250px;
+  }
+
+  button {width: 100px;}
+
+	.about {font-size: small; color: #888}
+
+</style>
+  </head>
+  <body>
+	<div class="branding-below">
+    <form class="navbar-form navbar-left">
+			<div class="form-label">
+				<b>Put folders from...</b></div>
+          <div class="form-group">
+            <select class="form-control roster-waiting" id="child-waiting" disabled>
+             <option>Looking for rosters...</option>
+            </select>
+            <select class="form-control hidden roster-select" id="child-select">
+              <option>-Select roster</option>
+            </select>
+			<div class="form-label">
+						<b>Inside of folders from...</b>
+			</div>
+                 <select class="form-control roster-waiting" id="parent-waiting" disabled>
+             <option>Looking for rosters...</option>
+            </select>
+            <select class="form-control hidden roster-select" id="parent-select">
+              <option>-Select roster</option>
+            </select>
+          </div>
+    </form>
+	<button id="load-roster" class="action form-control">Load Rosters</button>
+	<br>
+	<button id="embed-folders" class="action form-control">Embed Folders</button>
+	<br>
+	<br>
+	</div>
+	<div class="about sidebar">
+	Tool for embedding one set of folders in another built by Tom Hinkle; based on Doctopus tool from Andrew Stillman at New Visions. Code under a <a href="http://www.gnu.org/licenses/gpl-3.0.en.html">GPL V3 license</a>, source code available at <a href="">github</a>.
+	</div>
+  </body>
+</html>
+
+<script>
+
+function populateSelects(homeGlobal) {
+  console.log('got homeGlobal');
+  console.log('homeGlobal returned=>',homeGlobal)
+  var rosters = homeGlobal.rosters;
+	global = homeGlobal; // Make this baby global to avoid another round
+											 // trip to and from GAS...
+  for (var i=0; i<rosters.length; i++) {
+    console.log('in for loop',i);
+    var thisOption = '<option id="' + rosters[i].className + '">' + rosters[i].className + '</option>';
+    $('#parent-select').append(thisOption);
+    $('#child-select').append(thisOption);
+    CLASSNAMES.push(rosters[i].className);
+  } // end For
+
+  $('#child-waiting').addClass('hidden');
+  $('#child-select').removeClass('hidden');
+  $('#parent-waiting').addClass('hidden');  
+  $('#parent-select').removeClass('hidden');
+	resetCursor();
+}
+
+$('#load-roster').click(function() {
+	console.log('load roster!');
+	var parentVal = $('#parent-select').val();
+	var childVal = $('#child-select').val();
+	var parentRosterObj = false;
+	var childRosterObj = false;
+	global.rosters.forEach(
+		function (r) {
+			if (r['className']==parentVal) { 
+				parentRosterObj = r
+			}
+			if (r['className']==childVal) {
+				childRosterObj = r
+			}
+		}) // end forEach roster
+	if (childRosterObj && parentRosterObj) {
+		console.log('We have liftoff...')
+		busyCursor();
+		google.script.run.withFailureHandler(showError).withSuccessHandler(resetCursor).updateRostersOnSheet(childRosterObj,parentRosterObj);
+	}
+	else {
+		console.log('Items not selected?');
+	}
+} // end load-roster callback
+											 );
+
+function resetCursor () {
+	$('html').css('cursor','default');
+}
+
+function busyCursor () {
+	$('html').css('cursor','progress');
+}
+
+function showError (err) {
+	resetCursor()
+	alert('Error: '+JSON.stringify(err))
+}
+
+$('#embed-folders').click(function () {
+	busyCursor();
+	google.script.run.withFailureHandler(showError).withSuccessHandler(resetCursor).embedFoldersFromSheet();
+})
+
+console.log('Firing off getHomeGlobal')
+busyCursor()
+google.script.run.withSuccessHandler(populateSelects).withFailureHandler(showError).getHomeGlobal();
+
+CLASSNAMES = [];
+
+
+</script>
