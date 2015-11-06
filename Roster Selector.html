@@ -8,24 +8,26 @@
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
 <script type="text/javascript" src="https://apis.google.com/js/api.js"></script>
   <style>
-	
+   body {margin-left: 5px; margin-right: 5px}	
   .roster-select {
-    width: 250px;
+    width: 200px;
   }
   
   .roster-waiting {
-    width: 250px;
+    width: 200px;
   }
 
   .assignment-select {
-    width: 250px;
+    width: 200px;
   }
   
   .assignment-waiting {
-    width: 250px;
+    width: 200px;
   }
 
-  button {width: 100px;}
+    .warning { background-color: #FFF9C4; font-weight: bold; color: #311B92;}
+
+  /* button {width: 100px;} */
 
 	.about {font-size: small; color: #888}
 
@@ -33,7 +35,7 @@
   </head>
   <body>
 	<div class="branding-below">
-    <form class="navbar-form navbar-left">
+    <form id="rosterSelector">
 			<div class="form-label">
 				<b>Put folders from...</b></div>
           <div class="form-group">
@@ -54,14 +56,18 @@
             </select>
           </div>
     </form>
-	<button id="load-roster" class="form-control">Load Rosters</button>
+    <div id="noselection" class="warning hidden"><big>&#8593;</big>Don't forget to select a roster!</div>
+	<button id="load-roster" class="action">Load Rosters</button>
 	<br>
-	<button id="embed-folders" class="action form-control">Embed Folders</button>
+        <div id="noroster" class="warning hidden">You don't appear to have any doctopus rosters. This add-on is meant to be an enhancement for existing <a href='https://chrome.google.com/webstore/detail/doctopus/ffhegaddkjpkfiemhhnphmnadfbkdhbf?hl=en'>Doctopus</a> users who are using Doctopus in roster mode.<br><br><small><strong>Advanced Users</strong> <em>If you have a list of folder IDs you would like to manipulate, you can still use this Add-On to do so by setting up Column D with the IDs of the folders you want to be the children and Column E with IDs of the folders you want to be parent folders. The header of Column D must contain the text "Child Folder" and the header of Column E must contain the text "Parent Folder" in order for the script to run.</em></small></div>
+        <br>
+    
+	<button id="embed-folders" class="">Embed Folders</button>
 	<br>
 	<br>
 	</div>
-	<div class="about sidebar">
-	Tool for embedding one set of Doctopus folders in another by <a href="mailto:tmhinkle@gmail.com">Tom Hinkle</a>; based on Andrew Stillman&rsquo;s Doctopus tool from New Visions. Code under a <a href="http://www.gnu.org/licenses/gpl-3.0.en.html">GPL V3 license</a>, source code available at <a href="https://github.com/thinkle/doctopus-folder-embedder">github</a>.
+	<div class="about">
+	Tool for embedding one set of Doctopus</a> folders in another by <a href="mailto:tmhinkle@gmail.com">Tom Hinkle</a>; based on Andrew Stillman&rsquo;s <a href="https://chrome.google.com/webstore/detail/doctopus/ffhegaddkjpkfiemhhnphmnadfbkdhbf?hl=en">Doctopus</a> add-on from New Visions for Public Schools. Code under a <a href="http://www.gnu.org/licenses/gpl-3.0.en.html">GPL V3 license</a>, source code available at <a href="https://github.com/thinkle/doctopus-folder-embedder">github</a>.
 	</div>
   </body>
 </html>
@@ -85,7 +91,12 @@ function populateSelects(homeGlobal) {
   $('#child-waiting').addClass('hidden');
   $('#child-select').removeClass('hidden');
   $('#parent-waiting').addClass('hidden');  
-  $('#parent-select').removeClass('hidden');
+    $('#parent-select').removeClass('hidden');
+    if (rosters.length == 0) {
+	$('#noroster').removeClass('hidden');
+	$('#rosterSelector').addClass('hidden');
+	$('#load-roster').addClass('hidden');
+    }
 	resetCursor();
 }
 
@@ -107,13 +118,23 @@ $('#load-roster').click(function() {
 	if (childRosterObj && parentRosterObj) {
 		console.log('We have liftoff...')
 		busyCursor();
-		google.script.run.withFailureHandler(showError).withSuccessHandler(resetCursor).updateRostersOnSheet(childRosterObj,parentRosterObj);
+		google.script.run.withFailureHandler(showError).withSuccessHandler(switchButtonAndResetCursor).updateRostersOnSheet(childRosterObj,parentRosterObj);
 	}
 	else {
-		console.log('Items not selected?');
+	    console.log('Items not selected?');
+	    $('#noselection').removeClass('hidden')
+	    //google.script.run.withFailureHandler(showError).noRosterWarning();
 	}
 } // end load-roster callback
 											 );
+
+function switchButtonAndResetCursor () {
+    resetCursor()
+    $('#noselection').addClass('hidden')
+    $('#noroster').addClass('hidden')
+    $('#embed-folders').addClass('action')
+    $('#load-roster').removeClass('action')
+}
 
 function resetCursor () {
 	$('html').css('cursor','default');
@@ -124,8 +145,8 @@ function busyCursor () {
 }
 
 function showError (err) {
-	resetCursor()
-	alert('Error: '+JSON.stringify(err))
+    resetCursor()
+    console.log(err)
 }
 
 $('#embed-folders').click(function () {
